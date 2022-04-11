@@ -8,31 +8,7 @@
 
 #include "board.h"
 
-board_c::board_c()
-{
-	for (int i = 0; i < BOARD_DIM; i++)
-		for (int j = 0; j < BOARD_DIM; j++) {
-			pawns_1[i][j] = i < PAWNS_DIM&& j < PAWNS_DIM;
-			pawns_2[i][j] = i >= BOARD_DIM - PAWNS_DIM && j >= BOARD_DIM - PAWNS_DIM;
-		}
-	create_map();
-}
-
-board_c::~board_c()
-{
-	del_map();
-}
-
-void board_c::print_pawns()
-{
-	for (int i = 0; i < BOARD_DIM; i++) {
-		for (int j = 0; j < BOARD_DIM; j++)
-			std::cout << (pawns_1[i][j] || pawns_2[i][j] ? '#' : '.');
-		std::cout << std::endl;
-	}
-}
-
-void board_c::del_map()
+maze_c::~maze_c()
 {
 	for (int i = 0; i < BOARD_DIM; i++)
 		delete[] map[i];
@@ -40,71 +16,27 @@ void board_c::del_map()
 	map = nullptr;
 }
 
-void board_c::sync_map()
+maze_c::maze_c()
 {
-	for (int i = 0; i < BOARD_DIM; i++) for (int j = 0; j < BOARD_DIM; j++)
-		map[i][j] = pawns_1[i][j] || pawns_2[i][j] ? '#' : '.';
-}
-
-void board_c::create_map()
-{
-	delete map;
 	map = new char* [BOARD_DIM];
 	for (int i = 0; i < BOARD_DIM; i++)
 		map[i] = new char[BOARD_DIM];
-	sync_map();
 }
 
-void board_c::set_move1(int i0, int j0, int i1, int j1)
-{
-	pawns_1[i0][j0] = false;
-	pawns_1[i1][j1] = true;
-	print_pawns();
-	std::cout << "(" << i0 << "," << j0 << ")" << "->(" << i1 << "," << j1 << ")" << "\n";
-}
-
-void board_c::set_move2(int i0, int j0, int i1, int j1)
-{
-	pawns_2[i0][j0] = false;
-	pawns_2[i1][j1] = true;
-	print_pawns();
-	std::cout << "(" << i0 << "," << j0 << ")" << "->(" << i1 << "," << j1 << ")" << "\n";
-}
-
-void board_c::clean_path()
+void maze_c::sync(const int(&checkers)[BOARD_DIM][BOARD_DIM])
 {
 	for (int i = 0; i < BOARD_DIM; i++) for (int j = 0; j < BOARD_DIM; j++)
-		if (map[i][j] == '*') 
+		map[i][j] = checkers[i][j] != 0 ? '#' : '.';
+}
+
+void maze_c::clean_path()
+{
+	for (int i = 0; i < BOARD_DIM; i++) for (int j = 0; j < BOARD_DIM; j++)
+		if (map[i][j] == '*')
 			map[i][j] = '.';
 }
 
-bool board_c::debut()
-{
-	std::cout << "try debut\n";
-	//std::srand(std::time(nullptr));
-	for (int ii = 0; ii < 100; ii++) {
-		int i, j;
-		while (1) {
-			i = (int)(PAWNS_DIM * ((double)std::rand() / RAND_MAX));
-			j = (int)(PAWNS_DIM * ((double)std::rand() / RAND_MAX));
-			if (pawns_1[i][j])
-				break;
-		}
-		bool move_down = i + 1 >= 0 && i + 1 < BOARD_DIM && !pawns_1[i + 1][j] && !pawns_2[i + 1][j];
-		bool move_right = j + 1 >= 0 && j + 1 < BOARD_DIM && !pawns_1[i][j + 1] && !pawns_2[i][j + 1];
-		if (move_down) {
-			set_move1(i, j, i + 1, j);
-			return true;
-		}
-		if (move_right) {
-			set_move1(i, j, i, j + 1);
-			return true;
-		}
-	}
-	return false;
-}
-
-bool board_c::maze_start_step(int &x, int &y)
+bool maze_c::start_step(int& x, int& y)
 {
 	int i, j;
 	for (i = 0; i < BOARD_DIM; i++) for (j = 0; j < BOARD_DIM; j++)
@@ -126,40 +58,7 @@ end:
 	return true;
 }
 
-void board_c::set_finish(bool fixed)
-{
-	static bool flag[PAWNS_DIM][PAWNS_DIM] = {
-		{ false, false, false },
-		{ false, false, false },
-		{ false, false, false }
-	};
-	int mask_sz = num_moves < 20 ? 5 : num_moves < 30 ? 4 : num_moves < 35 ? 3 : 0;
-	for (int i = 0; i < PAWNS_DIM; i++) for (int j = 0; j < mask_sz; j++)
-		map[BOARD_DIM - 1 - i][BOARD_DIM - 1 - j] = '.';
-	for (int j = 0; j < PAWNS_DIM; j++) for (int i = 0; i < mask_sz; i++)
-		map[BOARD_DIM - 1 - i][BOARD_DIM - 1 - j] = '.';
-
-	if (!fixed) {
-		bool ret = false;
-		for (int j = 0; j < PAWNS_DIM; j++) for (int i = 0; i < PAWNS_DIM; i++) {
-			F_i = BOARD_DIM - 1 - i;
-			F_j = BOARD_DIM - 1 - j;
-			if (!flag[F_i][F_j] && !pawns_1[F_i][F_j] && !pawns_2[F_i][F_j]) {
-				map[F_i][F_j] = 'F';
-				flag[F_i][F_j] = true;
-				return;
-			}
-		}
-	}
-	else {
-		map[BOARD_DIM - 1][BOARD_DIM - 1] = 'F';
-		F_i = BOARD_DIM - 1;
-		F_j = BOARD_DIM - 1;
-	}
-	std::cout << "F=(" << F_i << "," << F_j << ")" << "\n";
-}
-
-int board_c::path_len()
+int maze_c::path_len()
 {
 	int len = 0;
 	for (int i = 0; i < BOARD_DIM; i++) for (int j = 0; j < BOARD_DIM; j++)
@@ -168,74 +67,214 @@ int board_c::path_len()
 	return len;
 }
 
-bool board_c::move()
+void maze_c::set_move(int i0, int j0, int i1, int j1)
 {
-	std::cout << (num_moves < 10 ? "try mittelspiel" : "try endspiel") << " move N "<< num_moves << "\n";
-	sync_map();
-	set_finish(num_moves++ < 50);
+	map[i0][j0] = '.';
+	map[i1][j1] = '#';
 	print_maze(map, BOARD_DIM, BOARD_DIM);
-	
-	int i1 = -1, j1 = -1, x0 = -1, y0 = -1;
-	for (int m = 0; m < 500; m++) {
-		int len = 10000;
-		for (int i = 0; i < BOARD_DIM; i++) {
-			for (int j = 0; j < BOARD_DIM; j++) {
-				bool has_moved = false;
-				if (pawns_moved.size() == PAWNS_DIM * PAWNS_DIM) {
-					pawns_moved.clear();
-					std::cout << "pawns_moved.clear\n";
-				}
-				else {
-					auto it = std::find_if(pawns_moved.begin(), pawns_moved.end(), [=](const std::pair<int, int>& p) { return p == std::make_pair(i, j); });
-					has_moved = it != pawns_moved.end();
-				}
-				if (!has_moved && pawns_1[i][j]) {
+}
+
+void maze_c::set_back(int i0, int j0, int i1, int j1)
+{
+	map[i0][j0] = '#';
+	map[i1][j1] = '.';
+}
+
+std::vector<std::pair<int, int>> maze_c::find_finish(bool one, const int(&checkers)[BOARD_DIM][BOARD_DIM], int ii, int jj)
+{
+	std::vector<std::pair<int, int>> fv;
+	if (one) {
+		int d0 = MIN(3, BOARD_DIM - 1 - ii);
+		int d1 = MIN(2, BOARD_DIM - 1 - jj);
+		for (int i = 0; i < d0; i++)
+			for (int j = 0; j < d1; j++)
+			if (!checkers[ii + i][jj + j])
+				fv.push_back(std::make_pair(ii + i, jj + j));
+	}
+	else {
+		int d0 = MIN(3, ii);
+		int d1 = MIN(2, jj);
+		for (int i = 0; i < d0; i++)
+			for (int j = 0; j < d1; j++)
+			if (!checkers[ii - i][jj - j])
+				fv.push_back(std::make_pair(ii - i, jj - j));
+	}
+	return fv;
+}
+
+std::vector<move_t> maze_c::search_moves(bool one, const int(&checkers)[BOARD_DIM][BOARD_DIM])
+{
+	sync(checkers);
+	std::vector<move_t> moves;
+	for (int i = 0; i < BOARD_DIM; i++) {
+		for (int j = 0; j < BOARD_DIM; j++) {
+			if (one && checkers[i][j] == 1 || !one && checkers[i][j] == -1) {
+				std::vector<std::pair<int, int>> fv = find_finish(one, checkers, i, j);
+				for (auto& fin : fv) {
+					bool failed = false;
+					int F_i = fin.first;
+					int F_j = fin.second;
 					if (abs(F_i - i) == 1 && abs(F_j - j) == 0 || abs(F_i - i) == 0 && abs(F_j - j) == 1) {
-						i1 = i;
-						j1 = j;
-						y0 = F_i;
-						x0 = F_j;
-						goto end;
+						move_t move;
+						move.i0 = i;
+						move.j0 = j;
+						move.i1 = F_i;
+						move.j1 = F_j;
+						move.len = 1;
+						moves.push_back(move);
 					}
 					else {
+						map[F_i][F_j] = 'F';
 						map[i][j] = 'S';
 						if (maze_search(map, BOARD_DIM, BOARD_DIM) == 1) {
 							std::cout << "search succeeded\n";
 							int sz = path_len();
 							int x, y;
-							maze_start_step(x, y);
-							if (y >= i && sz < len) {
-								len = sz;
-								i1 = i;
-								j1 = j;
-								y0 = y;
-								x0 = x;
+							if (start_step(x, y)) {
+								move_t move;
+								move.len = sz;
+								move.i0 = i;
+								move.j0 = j;
+								move.i1 = y;
+								move.j1 = x;
+								moves.push_back(move);
 								std::cout << sz << "\n";
 							}
 						}
-						else
+						else {
 							std::cout << "search failed!\n";
+							failed = true;
+						}
 						print_maze(map, BOARD_DIM, BOARD_DIM);
 						clean_path();
 						map[i][j] = '#';
+						map[F_i][F_j] = '.';
 					}
+					if (!failed)
+						break;
 				}
 			}
 		}
-		if (x0 == -1 || y0 == -1 || i1 == -1 || j1 == -1) {
-			i1 = j1 = x0 = y0 = -1;
-			std::cout << "all search failed - repeat!\n";
-			pawns_moved.clear();
+	}
+	return moves;
+}
+
+
+board_c::board_c()
+{
+	for (int i = 0; i < BOARD_DIM; i++)
+		for (int j = 0; j < BOARD_DIM; j++)
+			checkers[i][j] = i < PAWNS_DIM&& j < PAWNS_DIM ? 1 : i >= BOARD_DIM - PAWNS_DIM && j >= BOARD_DIM - PAWNS_DIM ? -1 : 0;
+}
+
+void board_c::print_checkers()
+{
+	for (int i = 0; i < BOARD_DIM; i++) {
+		for (int j = 0; j < BOARD_DIM; j++)
+			std::cout << (checkers[i][j] == 1 ? 'x' : checkers[i][j] == -1 ? 'o' : '.');
+		std::cout << std::endl;
+	}
+}
+
+void board_c::set_move1(int i0, int j0, int i1, int j1)
+{
+	checkers[i0][j0] = 0;
+	checkers[i1][j1] = 1;
+	print_checkers();
+	std::cout << "One:(" << i0 << "," << j0 << ")" << "->(" << i1 << "," << j1 << ")" << "\n";
+}
+
+void board_c::set_move2(int i0, int j0, int i1, int j1)
+{
+	checkers[i0][j0] = 0;
+	checkers[i1][j1] = -1;
+	print_checkers();
+	std::cout << "Two:(" << i0 << "," << j0 << ")" << "->(" << i1 << "," << j1 << ")" << "\n";
+}
+
+bool board_c::debut(bool allow_right, bool allow_left, bool allow_top)
+{
+	std::cout << "try debut\n";
+	std::srand(std::time(nullptr));
+	for (int ii = 0; ii < 100; ii++) {
+		int i, j;
+		while (1) {
+			i = (int)(PAWNS_DIM * ((double)std::rand() / RAND_MAX));
+			j = (int)(PAWNS_DIM * ((double)std::rand() / RAND_MAX));
+			if (checkers[i][j] == 1)
+				break;
 		}
-		else
-			goto end;
+		bool move_down = i + 1 < BOARD_DIM && !checkers[i + 1][j];
+		bool move_right = j + 1 < BOARD_DIM && !checkers[i][j + 1];
+		bool move_left = j - 1 >= 0 && !checkers[i][j - 1];
+		bool move_top = i - 1 >= 0 && !checkers[i - 1][j];
+		if (move_down) {
+			set_move1(i, j, i + 1, j);
+			return true;
+		}
+		if (allow_right && move_right) {
+			set_move1(i, j, i, j + 1);
+			return true;
+		}
+		if (ii > 25 && allow_left && move_left) {
+			set_move1(i, j, i, j - 1);
+			return true;
+		}		
+		if (ii > 50 && allow_top && move_top) {
+			set_move1(i, j, i - 1, j);
+			return true;
+		}
 	}
-end:
-	set_move1(i1, j1, y0, x0);
-	pawns_moved.push_back(std::make_pair(y0, x0));
-	if (y0 == 7 && x0 == 7) {
-		print_maze(map, BOARD_DIM, BOARD_DIM);
+	std::cout << "FATAL ERROR!\n";
+	return false;
+}
+
+bool board_c::move()
+{
+	maze_c maze;
+	std::vector<move_t> ai_moves = maze.search_moves(true, checkers);
+	if (!ai_moves.size()) {
+		std::cout << "No way found, proceed random.\n";
+		return false;
 	}
+	std::sort(ai_moves.begin(), ai_moves.end(), [](const move_t& a, const move_t& b) { return a.len < b.len; });
+	
+	set_move1(ai_moves[0].i0, ai_moves[0].j0, ai_moves[0].i1, ai_moves[0].j1);
 	std::cout << "moved\n";
 	return true;
+
+	/*
+	some agent blocking algo
+
+	move_t move;
+	move.len = 0;
+	move.i0 = -1;
+	for (int j = 0; j < ai_moves.size(); j++) {
+		const move_t& ai_m = ai_moves[j];
+		maze.set_move(ai_m.i0, ai_m.j0, ai_m.i1, ai_m.j1);
+		std::vector<move_t> agent_moves = maze.search_moves(false, checkers);
+		if (!agent_moves.size()) {
+			move = ai_m;
+			move.len = 1; //????????????????
+		}
+		else {
+			double len = 0;
+			for (int i = 0; i < agent_moves.size(); i++)
+				len += agent_moves[i].len;
+			len /= agent_moves.size();
+			if (move.len < len) {
+				move.len = len;
+				move = ai_m;
+			}
+			maze.set_back(ai_m.i0, ai_m.j0, ai_m.i1, ai_m.j1);
+		}
+	}
+	if (move.i0 > -1) {
+		set_move1(move.i0, move.j0, move.i1, move.j1);
+		std::cout << "moved\n";
+		return true;
+	}
+	else
+		return false;
+	*/
 }

@@ -20,9 +20,7 @@
 #define COLOR_BLUE   0xff0000ff
 #define COLOR_GRAY   0xff808080
 #define COLOR_GREEN  0xff00ff00
-#define MIN(a, b) ((a)>(b)?(b):(a))
-#define MAX(a, b) ((a)>(b)?(a):(b))
-#define DEBUT_MOVES 6
+#define DEBUT_MOVES  12
 
 int main(int, char**)
 {
@@ -118,22 +116,24 @@ int main(int, char**)
                         // the grid
                         ImGui::GetWindowDrawList()->AddRect(ImVec2(pos.x + j * cell_sz, pos.y + i * cell_sz),
                             ImVec2(pos.x + (j + 1) * cell_sz, pos.y + (i + 1) * cell_sz), COLOR_YELLOW);
-                        // pawns
-                        if (board.pawns_1[i][j])
+                        // checkers
+                        if (board.checkers[i][j] == 1)
                             ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2(pos.x + (j + 0.5) * cell_sz, pos.y + (i + 0.5) * cell_sz), 0.4 * cell_sz, COLOR_RED);
-                        if (board.pawns_2[i][j])
+                        if (board.checkers[i][j] == -1)
                             ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2(pos.x + (j + 0.5) * cell_sz, pos.y + (i + 0.5) * cell_sz), 0.4 * cell_sz, COLOR_BLUE);
                     }
                 }
 
-                static bool gamer1_move = true, ai_move_f = true;
-                if (gamer1_move && ai_move_f) {
+                static bool gamer1_move = true;
+                if (gamer1_move) {
                     if (debut_move++ < DEBUT_MOVES) {                        
-                        board.debut();
+                        board.debut(debut_move > 6, false, false);
                         std::cout << debut_move << "\n";
                     }
-                    else 
-                        ai_move_f = board.move();
+                    else {
+                        if (!board.move())
+                            board.debut(true, true, true);
+                    }
                     gamer1_move = false;
                 } else {
                     ImVec2 mouse_pos = ImGui::GetMousePos();
@@ -144,11 +144,11 @@ int main(int, char**)
                         over_i = floor((mouse_pos.y - pos.y) / cell_sz);
                     }
                     bool hover = over_j >= 0 && over_j < BOARD_DIM && over_i >= 0 && over_i < BOARD_DIM && 
-                        (ai_move_f && board.pawns_2[over_i][over_j] || !ai_move_f && board.pawns_1[over_i][over_j]) &&
-                       (over_i - 1 >= 0 && over_i - 1 < BOARD_DIM && !board.pawns_1[over_i - 1][over_j] && !board.pawns_2[over_i - 1][over_j] ||
-                        over_i + 1 >= 0 && over_i + 1 < BOARD_DIM && !board.pawns_1[over_i + 1][over_j] && !board.pawns_2[over_i + 1][over_j] ||
-                        over_j - 1 >= 0 && over_j - 1 < BOARD_DIM && !board.pawns_1[over_i][over_j - 1] && !board.pawns_2[over_i][over_j - 1] ||
-                        over_j + 1 >= 0 && over_j + 1 < BOARD_DIM && !board.pawns_1[over_i][over_j + 1] && !board.pawns_2[over_i][over_j + 1]);
+                       board.checkers[over_i][over_j] == -1 &&
+                       (over_i - 1 >= 0 && over_i - 1 < BOARD_DIM && !board.checkers[over_i - 1][over_j] ||
+                        over_i + 1 >= 0 && over_i + 1 < BOARD_DIM && !board.checkers[over_i + 1][over_j] ||
+                        over_j - 1 >= 0 && over_j - 1 < BOARD_DIM && !board.checkers[over_i][over_j - 1] ||
+                        over_j + 1 >= 0 && over_j + 1 < BOARD_DIM && !board.checkers[over_i][over_j + 1]);
                     if (hover)
                         ImGui::GetWindowDrawList()->AddCircle(ImVec2(pos.x + (over_j + 0.5) * cell_sz, pos.y + (over_i + 0.5) * cell_sz), 0.4 * cell_sz, COLOR_GRAY, 0, 3);
 
@@ -157,8 +157,8 @@ int main(int, char**)
                         over_jj = floor((mouse_pos.x - pos.x) / cell_sz);
                         over_ii = floor((mouse_pos.y - pos.y) / cell_sz);
                         if (over_jj >= 0 && over_jj < BOARD_DIM && over_ii >= 0 && over_ii < BOARD_DIM && (over_jj == over_j && over_ii == over_i
-                            || (!board.pawns_1[over_ii][over_jj] && !board.pawns_2[over_ii][over_jj] &&
-                                (abs(over_jj - over_j) == 1 && abs(over_ii - over_i) == 0 || abs(over_jj - over_j) == 0 && abs(over_ii - over_i) == 1)))) {
+                            || (!board.checkers[over_ii][over_jj] 
+                            && (abs(over_jj - over_j) == 1 && abs(over_ii - over_i) == 0 || abs(over_jj - over_j) == 0 && abs(over_ii - over_i) == 1)))) {
                             ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2(mouse_pos.x, mouse_pos.y), 0.4 * cell_sz, COLOR_GREEN);
                             mouse_drag = true;
                         }
@@ -167,12 +167,7 @@ int main(int, char**)
                     }
                     if (!ImGui::IsMouseDown(0)) {
                         if (mouse_drag && (over_jj != over_j || over_ii != over_i)) {
-                            if (ai_move_f) 
-                                board.set_move2(over_i, over_j, over_ii, over_jj);
-                            else {
-                                board.set_move2(over_i, over_j, over_ii, over_jj);
-                                ai_move_f = true;
-                            }
+                            board.set_move2(over_i, over_j, over_ii, over_jj);
                             gamer1_move = true;
                             over_j = over_i = over_jj = over_ii = -1;
                         }

@@ -5,32 +5,46 @@
 #define BOARD_DIM    8
 #define PAWNS_DIM    3
 
+#define MIN(a, b) ((a)>(b)?(b):(a))
+#define MAX(a, b) ((a)>(b)?(a):(b))
+
+typedef struct {
+	int i0;
+	int j0;
+	int i1;
+	int j1;
+	int len;
+} move_t;
+
+class maze_c
+{
+public:
+	char** map = nullptr;
+	maze_c();
+	~maze_c();
+
+	void sync(const int(&checkers)[BOARD_DIM][BOARD_DIM]);
+	void clean_path();
+	bool start_step(int& x, int& y);
+	int path_len();
+	std::vector<std::pair<int, int>> find_finish(bool one, const int(&checkers)[BOARD_DIM][BOARD_DIM], int ii, int jj);
+	std::vector<move_t> search_moves(bool one, const int(&checkers)[BOARD_DIM][BOARD_DIM]);
+	void set_move(int i0, int j0, int i1, int j1);
+	void set_back(int i0, int j0, int i1, int j1);
+};
+
 class board_c
 {
 public:
-	bool pawns_1[BOARD_DIM][BOARD_DIM];
-	bool pawns_2[BOARD_DIM][BOARD_DIM];
-	char** map = nullptr;
-
-	std::vector<std::pair<int, int>> pawns_moved;
-	int F_i = -1, F_j = -1;
-	int num_moves = 0;
+	int checkers[BOARD_DIM][BOARD_DIM];
 
 	board_c();
-	~board_c();
 	
-	void create_map();
-	void del_map();
-	void print_pawns();
-	void set_finish(bool fixed);
-	int path_len();
-	void sync_map();
+	void print_checkers();
 	void set_move1(int i0, int j0, int i1, int j1);
 	void set_move2(int i0, int j0, int i1, int j1);
-	void clean_path();
-	bool maze_start_step(int& x, int& y);
 
-	bool debut();
+	bool debut(bool allow_right, bool allow_left, bool allow_top);
 	bool move();
 };
 
