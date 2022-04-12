@@ -4,6 +4,7 @@
 
 #define BOARD_DIM    8
 #define PAWNS_DIM    3
+#define DEBUT_MOVES  10
 
 #define MIN(a, b) ((a)>(b)?(b):(a))
 #define MAX(a, b) ((a)>(b)?(a):(b))
@@ -13,7 +14,7 @@ typedef struct {
 	int j0;
 	int i1;
 	int j1;
-	int len;
+	double len;
 } move_t;
 
 class maze_c

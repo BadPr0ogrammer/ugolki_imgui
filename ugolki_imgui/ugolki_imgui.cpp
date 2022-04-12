@@ -20,7 +20,6 @@
 #define COLOR_BLUE   0xff0000ff
 #define COLOR_GRAY   0xff808080
 #define COLOR_GREEN  0xff00ff00
-#define DEBUT_MOVES  12
 
 int main(int, char**)
 {

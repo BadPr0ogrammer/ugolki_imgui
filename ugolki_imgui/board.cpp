@@ -82,6 +82,7 @@ void maze_c::set_back(int i0, int j0, int i1, int j1)
 
 std::vector<std::pair<int, int>> maze_c::find_finish(bool one, const int(&checkers)[BOARD_DIM][BOARD_DIM], int ii, int jj)
 {
+	// TODO: make target tangent 
 	std::vector<std::pair<int, int>> fv;
 	if (one) {
 		int d0 = MIN(3, BOARD_DIM - 1 - ii);
@@ -195,6 +196,27 @@ void board_c::set_move2(int i0, int j0, int i1, int j1)
 bool board_c::debut(bool allow_right, bool allow_left, bool allow_top)
 {
 	std::cout << "try debut\n";
+	int idxs[DEBUT_MOVES][2] = {
+		{3, 2}, {3, 1}, {2, 3}, {1, 3}, {3, 0}, {3, 3}, 
+		{4, 3}, {4, 2}, {4, 1}, 
+		{4, 4},
+	};
+	int k;
+	for (k = 0; k < DEBUT_MOVES; k++) {
+		int i = idxs[k][0];
+		int j = idxs[k][1];
+		if (checkers[i - 1][j] == 1 && !checkers[i][j]) {
+			set_move1(i - 1, j, i, j);
+			break;
+		}
+		if (checkers[i][j - 1] == 1 && !checkers[i][j]) {
+			set_move1(i, j - 1, i, j);
+			break;
+		}
+	}
+	if (k < 10)
+		return true;
+
 	std::srand(std::time(nullptr));
 	for (int ii = 0; ii < 100; ii++) {
 		int i, j;
